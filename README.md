@@ -4,6 +4,7 @@
 ## 目录
 
 * [高并发编程-AQS深入解析](https://mp.weixin.qq.com/s/91W0bEqBNIZaqFnpdrLXfA)
+* [高并发编程-CountDownLatch深入解析](https://mp.weixin.qq.com/s/jWI5rLwDB2yZIC3tPn5Vog)
 
 ## 关于我
 * [公众号：JavaQ](https://mp.weixin.qq.com/s/QE2PY9B4iFFV9gCabkJzcw?_blank)
