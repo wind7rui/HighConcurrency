@@ -8,7 +8,7 @@ Java虚拟机的运行时数据区中的堆和方法区是所有线程共享的�
 
 ## Java对象的对象头
 在HotSpot虚拟机中，Java对象在内存中存储的布局分为3块区域：对象头、实例数据和对齐填充。对象头包含两部分，第一部分包含对象的HashCode、分代年龄、锁标志位、线程持有的锁、偏向线程ID等数据，这部分数据的长度在32位和64位虚拟机中分别为32bit和64bit，官方称为Mark World。考虑到虚拟机的空间效率，Mark World内部的数据结构是非固定的，也就是说对象头中存储的内容是不固定的，下图展示了不同状态下，对象头中存储的内容：
-![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Object-Mark-World.png)
+![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Mark-World.png)
 
 当使用synchronized修饰方法或修饰语句块时(即获取对象锁或类锁时)，对象(类实例对象或类的类对象)的对象头中锁状态处于重量级锁，此时锁标志位为10，其余30bit用于存储指向互斥量(重量级锁)的指针，这里的指针，笔者理解为monitor对象的地址。
 
