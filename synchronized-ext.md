@@ -36,12 +36,12 @@ ObjectMonitor() {
     OwnerIsThread = 0 ;
   }
 ```
-当并发线程执行synchronized修饰的方法或语句块时，线程会被封装成ObjectWaiter，并存入_EntryList中；当某个线程获取到对象的monitor后，把monitor对象中的_owner变量设置为当前线程，同时monitor对象中的计数器_count加1，当前线程获取同步锁成功。
+当并发线程执行synchronized修饰的方法或语句块时，先进入_EntryList中，当某个线程获取到对象的monitor后，把monitor对象中的_owner变量设置为当前线程，同时monitor对象中的计数器_count加1，当前线程获取同步锁成功。
 
 当synchronized修饰的方法或语句块中的线程调用wait()方法时，当前线程将释放持有的monitor对象，monitor对象中的_owner变量赋值为null，同时，monitor对象中的_count值减1，然后当前线程进入_WaitSet集合中等待被唤醒。
 
 一个线程可以多次锁定同一个对象。对于每个对象，JVM维护对象被锁定的次数的计数。未加锁的对象的计数为零。当线程第一次获得锁时，计数将增加到1。每次线程获取同一个对象上的锁时，都会增加一个计数。每次线程释放锁时，计数将被递减。当计数达到0时，锁被释放，此时其它线程可以继续请求获取锁。
 
-下图展示获取锁和释放锁monitor中的变化：
+下图展示获取锁和释放锁monitor中数据变化：
 ![monitor](https://github.com/wind7rui/HighConcurrency/blob/master/monitor.png)
 
