@@ -43,5 +43,5 @@ ObjectMonitor() {
 一个线程可以多次锁定同一个对象。对于每个对象，JVM维护对象被锁定的次数的计数。未加锁的对象的计数为零。当线程第一次获得锁时，计数将增加到1。每次线程获取同一个对象上的锁时，都会增加一个计数。每次线程释放锁时，计数将被递减。当计数达到0时，锁被释放，此时其它线程可以继续请求获取锁。
 
 下图展示获取锁和释放锁monitor中的变化：
-
+![monitor](https://github.com/wind7rui/HighConcurrency/blob/master/monitor.png)
 
