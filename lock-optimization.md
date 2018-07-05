@@ -20,10 +20,10 @@ Java在语言上支持了锁的特性，在很多常用类的实现中也使用�
 ![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Mark-World.png)
 
 当代码执行到同步代码时，如果此时对象的锁未被锁定(锁标志位位01)，虚拟机将在当前线程的栈帧中创建一个名为Lock Record空间，这个空间用于存储当前对象的Mark World拷贝，具体如下图所示。
-![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Mark-World.png)
+![lock-record-1](https://github.com/wind7rui/HighConcurrency/blob/master/lock-record-1.png)
 
 接着，虚拟机使用CAS尝试将对象的对象头Mark Wolrd指向Lock Record，也就是在Mark Wolrd的30bit存储Lock Record的起始地址，具体如下图所示。如果上述操作执行成功，当前线程就持有了对象的锁，此时对象处于轻量级锁锁定状态，对应的锁标志位为00。
-![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Mark-World.png)
+![lock-record-2](https://github.com/wind7rui/HighConcurrency/blob/master/lock-record-2.png)
 
 如果上述操作执行失败，首先会检查对象的对象头Mark World是否指向了当前线程栈帧中的Lock Record，如果指向了则表示当前线程已经持有了对象的锁，否则表示对象的锁已经被其它线程持有，锁膨胀为重量级锁，线程挂起等待。
 
