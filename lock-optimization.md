@@ -17,12 +17,15 @@ Java在语言上支持了锁的特性，在很多常用类的实现中也使用�
 
 ## 轻量级锁
 了解轻量级锁之前，先了解一下Java对象在内存中存储的数据结构。在HotSpot虚拟机中，Java对象在内存中存储的布局分为3块区域：对象头、实例数据和对齐填充。对象头包含两部分，第一部分包含对象的HashCode、分代年龄、锁标志位、线程持有的锁、偏向线程ID等数据，这部分数据的长度在32位和64位虚拟机中分别为32bit和64bit，官方称为Mark World。考虑到虚拟机的空间效率，Mark World内部的数据结构是非固定的，也就是说对象头中存储的内容是不固定的，下图展示了不同状态下，对象头中存储的内容：
+
 ![对象头](https://github.com/wind7rui/HighConcurrency/blob/master/Mark-World.png)
 
 当代码执行到同步代码时，如果此时对象的锁未被锁定(锁标志位位01)，虚拟机将在当前线程的栈帧中创建一个名为Lock Record空间，这个空间用于存储当前对象的Mark World拷贝，具体如下图所示。
+
 ![lock-record-1](https://github.com/wind7rui/HighConcurrency/blob/master/lock-record-1.png)
 
 接着，虚拟机使用CAS尝试将对象的对象头Mark Wolrd指向Lock Record，也就是在Mark Wolrd的30bit存储Lock Record的起始地址，具体如下图所示。如果上述操作执行成功，当前线程就持有了对象的锁，此时对象处于轻量级锁锁定状态，对应的锁标志位为00。
+
 ![lock-record-2](https://github.com/wind7rui/HighConcurrency/blob/master/lock-record-2.png)
 
 如果上述操作执行失败，首先会检查对象的对象头Mark World是否指向了当前线程栈帧中的Lock Record，如果指向了则表示当前线程已经持有了对象的锁，否则表示对象的锁已经被其它线程持有，锁膨胀为重量级锁，线程挂起等待。
