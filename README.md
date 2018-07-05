@@ -11,6 +11,7 @@
 * 高并发编程-Happens before
 * 高并发编程-Semaphore
 * 高并发编程-CAS
+* 高并发编程-volatile
 
 ## 关于我
 * [公众号：JavaQ](https://mp.weixin.qq.com/s/QE2PY9B4iFFV9gCabkJzcw?_blank)
