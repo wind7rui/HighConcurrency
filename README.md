@@ -7,7 +7,7 @@
 * [高并发编程-CountDownLatch深入解析](https://mp.weixin.qq.com/s/jWI5rLwDB2yZIC3tPn5Vog)
 * [高并发编程-synchronized深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized.md)
 * [高并发编程-synchronized深入解析拾遗](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized-ext.md)
-* [高并发编程-锁优化](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized-ext.md)
+* [高并发编程-锁优化](https://github.com/wind7rui/HighConcurrency/blob/master/lock-optimization.md)
 
 ## 关于我
 * [公众号：JavaQ](https://mp.weixin.qq.com/s/QE2PY9B4iFFV9gCabkJzcw?_blank)
