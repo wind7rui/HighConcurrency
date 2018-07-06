@@ -8,6 +8,8 @@
 * [高并发编程-synchronized深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized.md)
 * [高并发编程-synchronized深入解析拾遗](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized-ext.md)
 * [高并发编程-锁优化](https://github.com/wind7rui/HighConcurrency/blob/master/lock-optimization.md)
+* 高并发编程-CyclicBarrier深入解析
+* 高并发编程-ReentrantLock深入解析
 * 高并发编程-Happens before
 * 高并发编程-Semaphore
 * 高并发编程-CAS
@@ -17,6 +19,5 @@
 * [公众号：JavaQ](https://mp.weixin.qq.com/s/QE2PY9B4iFFV9gCabkJzcw?_blank)
 * [头条号：Java实战技术](https://www.toutiao.com/c/user/62859607968/#mid=1575311975640078)
 * 微信号：wind7rui
-* [知识星球](https://www.jianshu.com/p/cff8bc8a0290)
 
 
