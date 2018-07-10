@@ -4,7 +4,7 @@ CAS（Compare and swap）直译过来就是比较和替换，是一种通过硬�
 ## CAS底层实现原理
 下面以AtomicInteger为入口来看一下CAS的底层实现原理。AtomicInteger可以用原子方式更新其int类型的属性值value。其中，incrementAndGet方法以原子方式将当前值加1，并返回最新值，具体代码如下。
 ```
-	public final int incrementAndGet() {
+    public final int incrementAndGet() {
         for (;;) {
             int current = get();
             int next = current + 1;
