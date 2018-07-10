@@ -5,11 +5,11 @@
 
 * [高并发编程-AQS深入解析](https://mp.weixin.qq.com/s/91W0bEqBNIZaqFnpdrLXfA)
 * [高并发编程-CountDownLatch深入解析](https://mp.weixin.qq.com/s/jWI5rLwDB2yZIC3tPn5Vog)
+* [高并发编程-CyclicBarrier深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/CyclicBarrier.md)
+* [高并发编程-ReentrantLock公平锁深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/ReentrantLock-fair.md)
 * [高并发编程-synchronized深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized.md)
 * [高并发编程-synchronized深入解析深挖](https://github.com/wind7rui/HighConcurrency/blob/master/synchronized-ext.md)
 * [高并发编程-锁优化](https://github.com/wind7rui/HighConcurrency/blob/master/lock-optimization.md)
-* [高并发编程-CyclicBarrier深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/CyclicBarrier.md)
-* [高并发编程-ReentrantLock公平锁深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/ReentrantLock-fair.md)
 * [高并发编程-happens-before](https://github.com/wind7rui/HighConcurrency/blob/master/happens-before.md)
 * [高并发编程-HashMap深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/HashMap.md)
 * 高并发编程-Semaphore
