@@ -59,11 +59,19 @@ HashMap在JDK1.8及以后的版本中引入了红黑树结构，若桶中链表�
 ```
 假设一个HashMap的初始容量是4，使用默认负载因子0.75，有三个元素通过Hash算法计算出的数组下标都是2，但是key值都不同，分别是a1、a2、a3，HashMap内部存储如下图：
 
+![](https://github.com/wind7rui/HighConcurrency/blob/master/hashmap-1.jpg)
+
 假设插入的第四个元素a4，通过Hash算法计算出的数组下标也是2，当插入时则需要扩容，此时有两个线程T1、T2同时插入a4，则T1、T2同时进行扩容操作，它们各自新建了一个Entry数组newTable。
+
+![](https://github.com/wind7rui/HighConcurrency/blob/master/hashmap-2.jpg)
 
 T2线程执行到transfer方法的Entry<K,V> next = e.next;时被挂起，T1线程执行transfer方法后Entry数组如下图：
 
+![](https://github.com/wind7rui/HighConcurrency/blob/master/hashmap-3.jpg)
+
 在T1线程没返回新建Entry数组之前，T2线程恢复，因为在T2挂起时，变量e指向的是a1，变量next指向的是a2，所以在T2恢复执行完transfer之后，Entry数组如下图：
+
+![](https://github.com/wind7rui/HighConcurrency/blob/master/hashmap-4.jpg)
 
 可以看到在T2执行完transfer方法后，a1元素和a2元素形成了循环引用，此时无论将T1的Entry数组还是T2的Entry数组返回作为扩容后的新数组，都会存在这个环形链表，当调用get方法获取该位置的元素时就会发生死循环，更严重会导致CPU占用100%故障。
 
@@ -86,7 +94,7 @@ Because TreeNodes are about twice the size of regular nodes, we use them only wh
 8: 0.00000006 
 more: less than 1 in ten million
 ```
-翻译过来大概的意思是：理想情况下使用随机的哈希码，容器中节点分布在hash桶中的频率遵循泊松分布(具体可以查看http://en.wikipedia.org/wiki/Poisson_distribution)，按照泊松分布的计算公式计算出了桶中元素个数和概率的对照表，可以看到链表中元素个数为8时的概率已经非常小，再多的就更少了，所以原作者在选择链表元素个数时选择了8，是根据概率统计而选择的。
+翻译过来大概的意思是：理想情况下使用随机的哈希码，容器中节点分布在hash桶中的频率遵循泊松分布(具体可以查看[](http://en.wikipedia.org/wiki/Poisson_distribution))，按照泊松分布的计算公式计算出了桶中元素个数和概率的对照表，可以看到链表中元素个数为8时的概率已经非常小，再多的就更少了，所以原作者在选择链表元素个数时选择了8，是根据概率统计而选择的。
 
 ### 默认加载因子为什么选择0.75
 
