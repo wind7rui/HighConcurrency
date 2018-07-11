@@ -17,7 +17,7 @@
 * 高并发编程-Semaphore
 * [高并发编程-CAS深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/CAS.md)
 * 高并发编程-volatile
-* 高并发编程-ThreadLocal深入解析
+* [高并发编程-ThreadLocal深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/ThreadLocal.md)
 * 高并发编程-Condition深入解析
 * 高并发编程-ReentrantReadWriteLock深入解析
 
