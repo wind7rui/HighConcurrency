@@ -1,0 +1,2 @@
+## ThreadLocal底层实现原理
+ThreadLocal的实现原理是每一个Thread维护一个ThreadLocalMap映射表，映射表的key是ThreadLocal实例，并且使用的是ThreadLocal的弱引用 ，value是具体需要存储的Object。下面用一张图展示这些对象之间的引用关系，实心箭头表示强引用，空心箭头表示弱引用。
