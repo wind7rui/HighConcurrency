@@ -20,4 +20,6 @@ tryAcquire(long timeout, TimeUnit unit)：在给定的等待时间内，尝试�
 tryAcquire(int permits, long timeout, TimeUnit unit)：在给定的等待时间内，尝试获取指定个数(permits)可用许可，如果此时有指定个数(permits)可用的许可，则立即返回true，同时许可集中许可个数减指定个数(permits)；如果此时许可集中许可个数不足指定个数(permits)，当前线程阻塞，直至其它某些线程调用此Semaphore的release()方法并且当前线程是下一个被分配许可的线程并且许可个数满足指定个数，或者其它某些线程中断当前线程，或者已超出指定的等待时间。
 
 ## 实现原理
+Semaphore内部原理是通过AQS实现的。Semaphore中定义了Sync抽象类，而Sync又继承了AbstractQueuedSynchronizer，Semaphore中对许可的获取与释放，是使用CAS通过对AQS中state的操作实现的。
+![]()
 
