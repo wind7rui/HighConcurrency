@@ -122,3 +122,55 @@ nonfairTryAcquireShared方法继承自Sync。
     }
 ```
 把当前线程封装成Node节点，并加入到等待队列的尾部，通过循环再次尝试获取许可，如果不能获取则当前线程阻塞，否则恢复当前线程并返回。
+
+无参数的tryAcquire方法和有参数的tryAcquire方法，在具体实现上和acquire方法类似，这里不再做具体分析。下面分析release方法。
+```
+    public void release() {
+        sync.releaseShared(1);
+    }
+```
+releaseShared方法的具体实现在AQS中。
+```
+    public final boolean releaseShared(int arg) {
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+            return true;
+        }
+        return false;
+    }
+```
+tryReleaseShared方法在Sync类中进行了重写。
+```
+    protected final boolean tryReleaseShared(int releases) {
+        for (;;) {
+            int current = getState();
+            int next = current + releases;
+            if (next < current) // overflow
+                throw new Error("Maximum permit count exceeded");
+            if (compareAndSetState(current, next))
+                return true;
+       }
+    }
+```
+如果要归还的许可个数和当前剩下的许可个数的总和超限，则抛出Error；否则通过CAS修改state，成功则返回true，失败返回false。返回到上面的releaseShared方法，如果tryReleaseShared方法执行返回false，则直接返回false，归还许可失败；如果tryReleaseShared方法执行返回true，则可以继续进行归还许可操作，执行doReleaseShared方法。
+```
+	private void doReleaseShared() {
+        for (;;) {
+            Node h = head;
+            if (h != null && h != tail) {
+                int ws = h.waitStatus;
+                if (ws == Node.SIGNAL) {
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                        continue;            // loop to recheck cases
+                    unparkSuccessor(h);
+                }
+                else if (ws == 0 &&
+                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+                    continue;                // loop on failed CAS
+            }
+            if (h == head)                   // loop if head changed
+                break;
+        }
+    }
+```
+doReleaseShared方法中，从等待队列的头结点开始，恢复符合条件的阻塞线程，使其恢复继续执行。
