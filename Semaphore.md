@@ -21,5 +21,104 @@ tryAcquire(int permits, long timeout, TimeUnit unit)：在给定的等待时间�
 
 ## 实现原理
 Semaphore内部原理是通过AQS实现的。Semaphore中定义了Sync抽象类，而Sync又继承了AbstractQueuedSynchronizer，Semaphore中对许可的获取与释放，是使用CAS通过对AQS中state的操作实现的。
-![]()
+![Semaphore](https://github.com/wind7rui/HighConcurrency/blob/master/Semaphore.png)
 
+Semaphore对许可的分配有两种策略，公平策略和非公平策略，没有明确指明时，默认为非公平策略。
+
+公平策略：根据方法调用顺序（即先进先出；FIFO）来选择线程、获得许可。
+非公平策略：不对线程获取许可的顺序做任何保证。
+
+Semaphore提供了两个构造方法用于构建实例对象。
+```
+    public Semaphore(int permits) {
+        sync = new NonfairSync(permits);
+    }
+    
+    public Semaphore(int permits, boolean fair) {
+        sync = fair ? new FairSync(permits) : new NonfairSync(permits);
+    }
+```
+
+下面分析非公平策略的Semaphore实现。首先是acquire()方法的实现代码。
+```
+    public void acquire() throws InterruptedException {
+        sync.acquireSharedInterruptibly(1);
+    }
+```
+acquireSharedInterruptibly方法的实现在AQS中。
+```
+    public final void acquireSharedInterruptibly(int arg)
+            throws InterruptedException {
+        if (Thread.interrupted())
+            throw new InterruptedException();
+        // 尝试获取指定个数许可
+        // 如果许可个数不足，则执行doAcquireSharedInterruptibly
+        if (tryAcquireShared(arg) < 0)
+            doAcquireSharedInterruptibly(arg);
+    }
+```
+可以看到，如果当前线程被中断，则直接抛出中断异常，否则继续执行tryAcquireShared方法，tryAcquireShared方法对公平策略和非公平策略在Semaphore中有不同的实现，这里分析非公平策略的实现，进入Semaphore的静态内部类NonfairSync中查看tryAcquireShared具体实现。
+```
+    static final class NonfairSync extends Sync {
+        NonfairSync(int permits) {
+            super(permits);
+        }
+
+        protected int tryAcquireShared(int acquires) {
+            return nonfairTryAcquireShared(acquires);
+        }
+    }
+```
+nonfairTryAcquireShared方法继承自Sync。
+```
+    abstract static class Sync extends AbstractQueuedSynchronizer {
+        Sync(int permits) {
+            setState(permits);
+        }
+
+        final int getPermits() {
+            return getState();
+        }
+
+        final int nonfairTryAcquireShared(int acquires) {
+            for (;;) {
+                int available = getState();
+                int remaining = available - acquires;
+                if (remaining < 0 ||
+                    compareAndSetState(available, remaining))
+                    return remaining;
+            }
+        }
+    }
+```
+可以看到，Semaphore中许可的分配是通过AQS中的state实现的。创建Semaphore对象时，初始化AQS的state值；当向Semaphore对象请求获取许可时，会获取state当前值，然后用当前值减去要获取的许可个数，得到许可剩余个数，如果剩余个数不足(小于0)或者剩余个数充足并且通过CAS成功修改state值，则直接返回许可剩余个数，否则一直做轮训获取操作。
+
+回到上面的acquireSharedInterruptibly方法，如果此时方法中tryAcquireShared执行结果是大于等于0，则获取许可成功，否则执行doAcquireSharedInterruptibly方法，这个方法的实现在AQS中。
+```
+    private void doAcquireSharedInterruptibly(int arg)
+        throws InterruptedException {
+        final Node node = addWaiter(Node.SHARED);
+        boolean failed = true;
+        try {
+            for (;;) {
+                final Node p = node.predecessor();
+                if (p == head) {
+                    int r = tryAcquireShared(arg);
+                    if (r >= 0) {
+                        setHeadAndPropagate(node, r);
+                        p.next = null; // help GC
+                        failed = false;
+                        return;
+                    }
+                }
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                    parkAndCheckInterrupt())
+                    throw new InterruptedException();
+            }
+        } finally {
+            if (failed)
+                cancelAcquire(node);
+        }
+    }
+```
+把当前线程封装成Node节点，并加入到等待队列的尾部，通过循环再次尝试获取许可，如果不能获取则当前线程阻塞，否则恢复当前线程并返回。
