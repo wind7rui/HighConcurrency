@@ -4,6 +4,7 @@ ReentrantLock是一个可重入的互斥锁，它不但具有synchronized实现�
 
 ## 实例演示
 下面是使用ReentrantLock公平锁的典型代码。
+```
 class X {
   private final ReentrantLock lock = new ReentrantLock(true);
 
@@ -16,7 +17,7 @@ class X {
     }
   }
 }
-
+```
 ## 方法解析
 1.ReentrantLock()创建一个非公平锁ReentrantLock实例。
 2.ReentrantLock(boolean fair)根据公平策略fair参数创建ReentrantLock实例。
