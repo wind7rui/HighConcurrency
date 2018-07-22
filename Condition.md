@@ -84,44 +84,6 @@ nanosTimeout指定的以毫微秒数为单位的等待时间。该方法返回�
 唤醒所有等待线程，如果所有的线程都在等待此条件，则唤醒所有线程。 在从await返回之前，每个线程必须重新获取锁。
 
 ## 底层实现原理
-这里以AQS内部的ConditionObject实现为例，分析底层实现原理。首先，分析await方法，具体实现代码如下。
-```
-        public final void await() throws InterruptedException {
-            if (Thread.interrupted())
-                throw new InterruptedException();
-            Node node = addConditionWaiter();
-            int savedState = fullyRelease(node);
-            int interruptMode = 0;
-            while (!isOnSyncQueue(node)) {
-                LockSupport.park(this);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-                    break;
-            }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
-                interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null) // clean up if cancelled
-                unlinkCancelledWaiters();
-            if (interruptMode != 0)
-                reportInterruptAfterWait(interruptMode);
-        }
-        
-        private Node addConditionWaiter() {
-            Node t = lastWaiter;
-            // If lastWaiter is cancelled, clean out.
-            if (t != null && t.waitStatus != Node.CONDITION) {
-                unlinkCancelledWaiters();
-                t = lastWaiter;
-            }
-            Node node = new Node(Thread.currentThread(), Node.CONDITION);
-            if (t == null)
-                firstWaiter = node;
-            else
-                t.nextWaiter = node;
-            lastWaiter = node;
-            return node;
-        }
-        
-        
-```
+这里以AQS内部的ConditionObject实现为例，分析底层实现原理，这部分内容已在![高并发编程-CyclicBarrier深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/CyclicBarrier.md)后半部分深入分析过，这里不再做具体分析。
 
 
