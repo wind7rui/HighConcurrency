@@ -19,7 +19,7 @@ class X {
 ```
 
 ## 方法解析
-1.ReentrantLock()创建一个非公平锁ReentrantLock实例。 
+1.ReentrantLock()创建一个非公平锁ReentrantLock实例；  
 2.ReentrantLock(boolean fair)根据公平策略fair参数创建ReentrantLock实例。 
 3.lock()获取锁。 
 4.unlock()释放锁。 
