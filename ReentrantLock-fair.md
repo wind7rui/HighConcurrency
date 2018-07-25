@@ -19,21 +19,21 @@ class X {
 }
 ```
 ## 方法解析
-1.ReentrantLock()创建一个非公平锁ReentrantLock实例。
-2.ReentrantLock(boolean fair)根据公平策略fair参数创建ReentrantLock实例。
-3.lock()获取锁。
-4.unlock()释放锁。
-5.newCondition()返回与此ReentrantLock实例一起使用的Condition的实例。
-6.getHoldCount()获取当前线程持有此锁的次数。
-7.getQueueLength()返回正在等待获取此锁的线程数。
-8.getWaitQueueLength(Condition condition)返回等待与此锁相关的给定条件的线程数。
-9.hasQueuedThread(Thread thread)返回指定线程是否正在等待获取此锁。
-10.hasQueuedThreads()返回是否有线程正在等待获取此锁。
-11.hasWaiters(Condition condition)返回是否有线程正在等待与此锁有关的给定条件。
-12.isFair()返回锁是否是公平锁。
-13.isHeldByCurrentThread()返回当前线程是否持有此锁。
-14.tryLock()尝试获取锁，仅在调用时锁未被其它线程持有时才可以获取该锁。
-15.tryLock(long timeout, TimeUnit unit)尝试获取锁，如果锁在指定等待时间内没有被另一个线程持有，并且当前线程未被中断，则可以获取该锁。
+1. ReentrantLock()创建一个非公平锁ReentrantLock实例；  
+2. ReentrantLock(boolean fair)根据公平策略fair参数创建ReentrantLock实例；  
+3. lock()获取锁；  
+4. unlock()释放锁；  
+5. newCondition()返回与此ReentrantLock实例一起使用的Condition的实例；  
+6. getHoldCount()获取当前线程持有此锁的次数；  
+7. getQueueLength()返回正在等待获取此锁的线程数；  
+8. getWaitQueueLength(Condition condition)返回等待与此锁相关的给定条件的线程数；  
+9. hasQueuedThread(Thread thread)返回指定线程是否正在等待获取此锁；  
+10. hasQueuedThreads()返回是否有线程正在等待获取此锁；  
+11. hasWaiters(Condition condition)返回是否有线程正在等待与此锁有关的给定条件；  
+12. isFair()返回锁是否是公平锁；  
+13. isHeldByCurrentThread()返回当前线程是否持有此锁；  
+14. tryLock()尝试获取锁，仅在调用时锁未被其它线程持有时才可以获取该锁；  
+15. tryLock(long timeout, TimeUnit unit)尝试获取锁，如果锁在指定等待时间内没有被另一个线程持有，并且当前线程未被中断，则可以获取该锁。
 
 ## 源码解析
 从上面的方法解析可以看到它有很多方法，本文将重点深入分析lock()和unlock()方法。首先，从构造函数开始。
