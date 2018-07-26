@@ -41,11 +41,16 @@ ReentrantReadWriteLock类中重要的还是在它内部实现的ReadLock类和Wr
 ### ReadLock类
 1. ReentrantReadWriteLock.ReadLock(ReentrantReadWriteLock lock)：使用ReentrantReadWriteLock创建ReadLock对象；
 2. lock()：获取读操作锁，如果写入锁没有被其它线程持有，则立即获取读取锁，否则当前线程阻塞直到获取读取锁；
-3. unlock()：释放读操作锁；
-4. tryLock()：尝试获取读操作锁，如果写入锁没有被其它线程持有，则立即获取读取锁并返回true值，否则当前线程阻塞直到获取读取锁；
-5. tryLock(long timeout, TimeUnit unit)：在指定的等待时间内尝试获取读操作锁，如果写入锁没有被其它线程持有，则立即获取读取锁并返回true值，否则当前线程阻塞直到等待时间结束并返回false；
+3. unlock()：释放读操作锁，同时唤醒其它等待获取该锁的线程；
+4. tryLock()：尝试获取读操作锁，如果写入锁没有被其它线程持有，则立即获取读取锁并返回true值，否则立即返回false值；
+5. tryLock(long timeout, TimeUnit unit)：在指定的等待时间内尝试获取读操作锁，如果写入锁没有被其它线程持有，并且当前线程未被中断，则立即获取读取锁并返回true值，否则当前线程阻塞直到等待时间结束并返回false。
 
 ### WriteLock类
+1. ReentrantReadWriteLock.WriteLock(ReentrantReadWriteLock lock)：使用ReentrantReadWriteLock创建WriteLock对象；
+2. lock()：当前线程获取写入锁时，如果其它线程既没有持有读取锁也没有持有写入锁，则可以获取写入锁并立即返回，并将写入锁持有计数设置为1；如果当前线程已经持有写入锁，则写入锁计数增加1，该方法立即返回；如果锁被其它线程持有，当前线程阻塞直到获取写入锁；
+3. tryLock()：当前线程获取写入锁时，如果其它线程既没有持有读取锁也没有持有写入锁，则可以获取写入锁并立即返回，并将写入锁持有计数设置为1；如果当前线程已经持有写入锁，则写入锁计数增加1，该方法立即返回；如果锁被其它线程持有，立即返回false值；
+4. tryLock(long timeout, TimeUnit unit)：在指定的等待时间内尝试获取写操作锁，如果其它线程既没有持有读取锁也没有持有写入锁，并且当前线程未被中断，则可以获取写入锁并立即返回，并将写入锁持有计数设置为1；如果当前线程已经持有此锁，则将持有计数加1，该方法将返回true值；否则当前线程阻塞直到等待时间结束并返回false；
+5. unlock()：如果当前线程持有此锁，则将持有计数减1；如果持有计数等于0，则释放该锁，同时唤醒其它等待获取该锁的线程；如果当前线程不是此锁的持有者，则抛出 IllegalMonitorStateException。
 
 ## 源码解析
 
