@@ -53,4 +53,103 @@ ReentrantReadWriteLock类中重要的还是在它内部实现的ReadLock类和Wr
 5. unlock()：如果当前线程持有此锁，则将持有计数减1；如果持有计数等于0，则释放该锁，同时唤醒其它等待获取该锁的线程；如果当前线程不是此锁的持有者，则抛出 IllegalMonitorStateException。
 
 ## 源码解析
+首先，看一下ReentrantReadWriteLock类有哪些属性和构造函数，具体代码如下。
+```
+    public class ReentrantReadWriteLock
+            implements ReadWriteLock, java.io.Serializable {
+
+        //ReadLock是ReentrantReadWriteLock中的静态内部类，它是读取锁的实现
+        private final ReentrantReadWriteLock.ReadLock readerLock;
+
+        //WriteLock是ReentrantReadWriteLock中的静态内部类，它是写入锁的实现
+        private final ReentrantReadWriteLock.WriteLock writerLock;
+
+        //Sync是ReentrantReadWriteLock中的静态内部类，它继承了AQS
+        //它是读写锁实现的重点，后面深入分析
+        final Sync sync;
+
+        //默认使用非公平策略创建对象
+        public ReentrantReadWriteLock() {
+            this(false);
+        }
+
+        //根据指定策略参数创建对象
+        public ReentrantReadWriteLock(boolean fair) {
+            //FairSync和NonfairSync都继承自Sync，它们主要提供了对读写是否需要被阻塞的检查方法
+            sync = fair ? new FairSync() : new NonfairSync();
+            readerLock = new ReadLock(this);
+            writerLock = new WriteLock(this);
+        }
+    }
+```
+上面的代码中介绍到Sync类是重点代码，这里先看它的部分重点源码。
+```
+    //继承了AQS
+    abstract static class Sync extends AbstractQueuedSynchronizer {
+        //常量值
+        static final int SHARED_SHIFT   = 16;
+
+        //左移16位后，二进制值是10000000000000000，十进制值是65536
+        static final int SHARED_UNIT    = (1 << SHARED_SHIFT);
+
+        //左移16位后再减一，十进制值是65535
+        //这个常量值用于标识最多支持65535个递归写入锁或65535个读取锁
+        static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1;
+
+        //左移16位后再减一，二进制值是1111111111111111
+        static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
+
+        //用于计算持有读取锁的线程数
+        static int sharedCount(int c) {
+            //无符号右移动16位
+            //如果c是32位，无符号右移后，得到是高16位的值
+            return c >>> SHARED_SHIFT; 
+        }
+        
+        //用于计算写入锁的重入次数
+        static int exclusiveCount(int c) {
+            //如果c是32位，和1111111111111111做&运算，得到的低16位的值
+            return c & EXCLUSIVE_MASK; 
+        }
+
+        //用于每个线程持有读取锁的计数
+        static final class HoldCounter {
+            //每个线程持有读取锁的计数
+            int count = 0;
+
+            //当前持有读取锁的线程ID
+            //这里使用线程ID而没有使用引用，避免垃圾收集器保留，导致无法回收
+            final long tid = Thread.currentThread().getId();
+        }
+
+        //通过ThreadLocal维护每个线程的HoldCounter
+        static final class ThreadLocalHoldCounter
+            extends ThreadLocal<HoldCounter> {
+            //这里重写了ThreadLocal的initialValue方法
+            public HoldCounter initialValue() {
+                return new HoldCounter();
+            }
+        }
+
+        //当前线程持有的可重入读取锁的数量，仅在构造方法和readObject方法中被初始化
+        //当持有锁的数量为0时，移除此对象
+        private transient ThreadLocalHoldCounter readHolds;
+
+        //成功获取读取锁的最近一个线程的计数
+        private transient HoldCounter cachedHoldCounter;
+
+        //第一个获得读锁的线程
+        private transient Thread firstReader = null;
+        //第一个获得读锁的线程计数
+        private transient int firstReaderHoldCount;
+
+        Sync() {
+            //构建每个线程的HoldCounter
+            readHolds = new ThreadLocalHoldCounter();
+            setState(getState()); // ensures visibility of readHolds
+        }
+    }
+```
+Sync继承自AQS，Sync使用AQS中的state属性来代表锁的状态，这个state二进制值被设计成32位，其中高16位用作读取锁，低16位用作写入锁。所以，如果要计算持有读取锁的线程数，只要将state二进制值无符号右移动16位；如果要计算写入锁的重入次数，只要将state二进制值和1111111111111111做&运算。
+
 
