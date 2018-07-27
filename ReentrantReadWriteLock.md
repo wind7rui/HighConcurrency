@@ -152,4 +152,114 @@ ReentrantReadWriteLock类中重要的还是在它内部实现的ReadLock类和Wr
 ```
 Sync继承自AQS，Sync使用AQS中的state属性来代表锁的状态，这个state二进制值被设计成32位，其中高16位用作读取锁，低16位用作写入锁。所以，如果要计算持有读取锁的线程数，只要将state二进制值无符号右移动16位；如果要计算写入锁的重入次数，只要将state二进制值和1111111111111111做&运算。
 
+### ReadLock源码解析
+下面开始分析读取锁ReadLock的实现原理，先看一下它的构造函数源码。
+```
+    public static class ReadLock implements Lock, java.io.Serializable {
+        private final Sync sync;
 
+        //通过ReentrantReadWriteLock对象构建ReadLock
+        protected ReadLock(ReentrantReadWriteLock lock) {
+            //在ReentrantReadWriteLock构造函数中会根据fair参数值选择FairSync或NonfairSync创建不同的对象
+            //所以，这里赋值给sync的可能是FairSync类的对象，也可能是NonfairSync类的对象
+            sync = lock.sync;
+        }
+    }
+```
+FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是否需要被阻塞的检查方法，这里不做深入分析。
+
+对于lock()方法，如果写入锁没有被其它线程持有，则立即获取读取锁，否则当前线程阻塞直到获取读取锁，具体代码如下。
+```
+        public void lock() {
+            //调用AQS的acquireShared方法
+            sync.acquireShared(1);
+        }
+
+        //AQS的acquireShared方法
+        public final void acquireShared(int arg) {
+            //尝试获取读取锁
+            if (tryAcquireShared(arg) < 0)
+                doAcquireShared(arg);
+        }
+
+        protected final int tryAcquireShared(int unused) {
+            
+            Thread current = Thread.currentThread();
+            int c = getState();
+            if (exclusiveCount(c) != 0 &&
+                getExclusiveOwnerThread() != current)
+                return -1;
+            int r = sharedCount(c);
+            if (!readerShouldBlock() &&
+                r < MAX_COUNT &&
+                compareAndSetState(c, c + SHARED_UNIT)) {
+                if (r == 0) {
+                    firstReader = current;
+                    firstReaderHoldCount = 1;
+                } else if (firstReader == current) {
+                    firstReaderHoldCount++;
+                } else {
+                    HoldCounter rh = cachedHoldCounter;
+                    if (rh == null || rh.tid != current.getId())
+                        cachedHoldCounter = rh = readHolds.get();
+                    else if (rh.count == 0)
+                        readHolds.set(rh);
+                    rh.count++;
+                }
+                return 1;
+            }
+            return fullTryAcquireShared(current);
+        }
+
+        
+        final int fullTryAcquireShared(Thread current) {
+            
+            HoldCounter rh = null;
+            for (;;) {
+                int c = getState();
+                if (exclusiveCount(c) != 0) {
+                    if (getExclusiveOwnerThread() != current)
+                        return -1;
+                    // else we hold the exclusive lock; blocking here
+                    // would cause deadlock.
+                } else if (readerShouldBlock()) {
+                    // Make sure we're not acquiring read lock reentrantly
+                    if (firstReader == current) {
+                        // assert firstReaderHoldCount > 0;
+                    } else {
+                        if (rh == null) {
+                            rh = cachedHoldCounter;
+                            if (rh == null || rh.tid != current.getId()) {
+                                rh = readHolds.get();
+                                if (rh.count == 0)
+                                    readHolds.remove();
+                            }
+                        }
+                        if (rh.count == 0)
+                            return -1;
+                    }
+                }
+                if (sharedCount(c) == MAX_COUNT)
+                    throw new Error("Maximum lock count exceeded");
+                if (compareAndSetState(c, c + SHARED_UNIT)) {
+                    if (sharedCount(c) == 0) {
+                        firstReader = current;
+                        firstReaderHoldCount = 1;
+                    } else if (firstReader == current) {
+                        firstReaderHoldCount++;
+                    } else {
+                        if (rh == null)
+                            rh = cachedHoldCounter;
+                        if (rh == null || rh.tid != current.getId())
+                            rh = readHolds.get();
+                        else if (rh.count == 0)
+                            readHolds.set(rh);
+                        rh.count++;
+                        cachedHoldCounter = rh; // cache for release
+                    }
+                    return 1;
+                }
+            }
+        }
+
+```
