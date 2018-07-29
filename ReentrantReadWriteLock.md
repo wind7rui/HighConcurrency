@@ -187,7 +187,8 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             Thread current = Thread.currentThread();
             //获取当前AQS中state值
             int c = getState();
-            //如果写入锁被持有，并且持有写入锁的线程不是当前线程
+            //使用exclusiveCount计算写入锁是否被持有
+            //如果exclusiveCount(c)结果不等于0，即写入锁被持有，并且持有写入锁的线程不是当前线程
             if (exclusiveCount(c) != 0 &&
                 getExclusiveOwnerThread() != current)
                 //返回-1
