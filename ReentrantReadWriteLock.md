@@ -140,7 +140,7 @@ ReentrantReadWriteLock类中重要的还是在它内部实现的ReadLock类和Wr
 
         //第一个获得读锁的线程
         private transient Thread firstReader = null;
-        //第一个获得读锁的线程计数
+        //第一个获得读锁的线程持有读取锁的次数
         private transient int firstReaderHoldCount;
 
         Sync() {
@@ -180,7 +180,7 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             //尝试获取读取锁
             //tryAcquireShared方法返回值小于0，则获取失败
             if (tryAcquireShared(arg) < 0)
-                //尝试排队再次获取
+                //排队尝试再次获取
                 doAcquireShared(arg);
         }
 
@@ -195,17 +195,27 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
                 getExclusiveOwnerThread() != current)
                 //返回-1
                 return -1;
-            //使用sharedCount方法计算读取锁被持有的次数
+            //使用sharedCount方法计算读取锁被持有的线程数
             int r = sharedCount(c);
+            //如果当先线程不需要被阻塞，并且持有读取锁的线程数没有超过最大值，并且使用CAS更新读取锁线程数量成功。
+            //readerShouldBlock方法用于判断当先线程是否需要被阻塞，它在FairSync和NonfairSync中的实现各不同，
+            //FairSync中实现是如果有其它线程在当前线程之前等待获取读取锁，则当前线程应该被阻塞并返回true，否则返回false；
+            //NonfairSync中实现是如果等待队列的第一个节点的线程等待获取写入锁，则当前线程应该被阻塞并返回true，否则返回false；
             if (!readerShouldBlock() &&
                 r < MAX_COUNT &&
                 compareAndSetState(c, c + SHARED_UNIT)) {
+                //如果读取锁被持有的线程数等于0
                 if (r == 0) {
+                    //则表示当前线程是第一个获取读取锁的
                     firstReader = current;
+                    //第一个获得读锁的线程持有读取锁的次数赋值为1
                     firstReaderHoldCount = 1;
                 } else if (firstReader == current) {
+                    //如果读取锁被持有的线程数不等于0，并且当前线程是第一个获取读取锁的
+                    //则将持有读取锁的次数加1
                     firstReaderHoldCount++;
                 } else {
+                    //将当先线程持有读取锁的次数信息，放入线程本地变量中
                     HoldCounter rh = cachedHoldCounter;
                     if (rh == null || rh.tid != current.getId())
                         cachedHoldCounter = rh = readHolds.get();
@@ -213,8 +223,11 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
                         readHolds.set(rh);
                     rh.count++;
                 }
+                //成功获取读取锁，返回1
                 return 1;
             }
+            //如果当前线程需要被阻塞，或持有读取锁的线程数超过最大值，或使用CAS更新读取锁线程数量失败
+            //通过自旋的方式解决这三种获取锁失败的情况
             return fullTryAcquireShared(current);
         }
 
@@ -222,18 +235,25 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
         final int fullTryAcquireShared(Thread current) {
             
             HoldCounter rh = null;
+            //自旋
             for (;;) {
+                //当前锁状态值
                 int c = getState();
+                //如果写入锁被线程持有
                 if (exclusiveCount(c) != 0) {
+                    //并且写入锁的持有者不是当前线程，则返回-1，获取锁失败
                     if (getExclusiveOwnerThread() != current)
                         return -1;
                     // else we hold the exclusive lock; blocking here
                     // would cause deadlock.
+                //如果当前线程应该被阻塞
                 } else if (readerShouldBlock()) {
                     // Make sure we're not acquiring read lock reentrantly
                     if (firstReader == current) {
                         // assert firstReaderHoldCount > 0;
                     } else {
+                        //如果最近一次获取读取锁的线程或从上下文中获取的当前线程，持有的锁记录数等于0，
+                        //则返回-1获取读取锁失败
                         if (rh == null) {
                             rh = cachedHoldCounter;
                             if (rh == null || rh.tid != current.getId()) {
@@ -246,9 +266,12 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
                             return -1;
                     }
                 }
+                //如果持有读取锁的线程数等于最大值
                 if (sharedCount(c) == MAX_COUNT)
                     throw new Error("Maximum lock count exceeded");
+                //如果使用CAS更新读取锁线程数量成功
                 if (compareAndSetState(c, c + SHARED_UNIT)) {
+                    //更新线程持有的锁次数
                     if (sharedCount(c) == 0) {
                         firstReader = current;
                         firstReaderHoldCount = 1;
@@ -268,5 +291,4 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
                 }
             }
         }
-
 ```
