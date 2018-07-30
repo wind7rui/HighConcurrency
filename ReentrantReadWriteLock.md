@@ -336,3 +336,94 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             }
         }
 ```
+对于unlock()方法用于释放当前线程持有的读取锁，具体实现是先修改线程持有的读取锁的计数数量，然后通过自旋方式使用CAS修改锁状态高16位值为当前值减1，最后如果锁状态值等于0，即既没有写入锁，也没有读取锁被线程持有，则唤醒等待队列中等待获取锁的线程。具体源码分析如下。
+```
+        //ReadLock类中的unlock方法
+        public  void unlock() {
+            //调用AQS中的releaseShared方法
+            sync.releaseShared(1);
+        }
+        
+        //AQS中的releaseShared方法
+        public final boolean releaseShared(int arg) {
+            //这里调用了ReentrantReadWriteLock类的tryReleaseShared方法
+            //在这个方法中做了如下两件事：
+            //1.修改当前线程持有的读取锁的计数数量，计数数量减一
+            //2.修改锁状态值的高16位值(读取锁的值)，值减一，并且返回锁状态值是否等于0
+            if (tryReleaseShared(arg)) {
+                //如果锁状态值等于0，即既没有写入锁，也没有读取锁被线程持有，执行doReleaseShared
+                //这里调用的是AQS中的doReleaseShared方法
+                doReleaseShared();
+                return true;
+            }
+            return false;
+        }
+        
+        //ReentrantReadWriteLock类的tryReleaseShared方法
+        protected final boolean tryReleaseShared(int unused) {
+            Thread current = Thread.currentThread();
+            // 如果当前线程是第一个获取读取锁的线程
+            if (firstReader == current) {
+                // 第一个获取读取锁的线程持有的读取锁的次数等于1
+                if (firstReaderHoldCount == 1)
+                    //要释放掉，所以置为null
+                    firstReader = null;
+                else
+                    //否则，直接将线程持有的读取锁的次数减一
+                    firstReaderHoldCount--;
+            } else{
+                //最近一次成功获取读取锁的线程和计数信息
+                HoldCounter rh = cachedHoldCounter;
+                //如果取得的rh==null或它里面记录的不是当前线程的信息，
+                //则直接从上下文中获取当前线程的线程和计数信息
+                if (rh == null || rh.tid != current.getId())
+                    rh = readHolds.get();
+                //当前线程持有读取锁的次数
+                int count = rh.count;
+                //如果次数小于等于1，则从上下文中移除
+                if (count <= 1) {
+                    readHolds.remove();
+                    //如果次数小于等于0，则抛出异常，因为不符合是否锁的条件
+                    if (count <= 0)
+                        throw unmatchedUnlockException();
+                }
+                //将线程持有读取锁的次数减一
+                --rh.count;
+            }
+            for (;;) {
+                //获取锁状态值
+                int c = getState();
+                //这里转换成二进制计算，是将高16位减1
+                int nextc = c - SHARED_UNIT;
+                if (compareAndSetState(c, nextc))
+                    //如果既没有写入锁，也没有读取锁被线程持有，则返回true
+                    return nextc == 0;
+            }
+        }
+        
+        //AQS中的doReleaseShared方法
+        private void doReleaseShared() {
+            for (;;) {
+                //等待队列的头结点
+                Node h = head;
+                //如果头结点存在，并且有后继节点
+                if (h != null && h != tail) {
+                    int ws = h.waitStatus;
+                    //如果head指向的节点状态可以被唤醒
+                    if (ws == Node.SIGNAL) {
+                        //使用CAS更新节点的等待状态
+                        //如果不成功则继续循环，通过循环来保证更新成功
+                        if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                            continue;            // loop to recheck cases
+                        //更新成功，则唤醒节点对应的线程
+                        unparkSuccessor(h);
+                    }
+                    else if (ws == 0 &&
+                             !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+                        continue;                // loop on failed CAS
+                }
+                if (h == head)                   // loop if head changed
+                    break;
+            }
+        }
+```
