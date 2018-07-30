@@ -180,10 +180,11 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             //尝试获取读取锁
             //tryAcquireShared方法返回值小于0，则获取失败
             if (tryAcquireShared(arg) < 0)
-                //排队尝试再次获取
+                //AQS中的方法，用于排队尝试再次获取读取锁
                 doAcquireShared(arg);
         }
-
+        
+        //ReentrantReadWriteLock类的tryAcquireShared方法
         protected final int tryAcquireShared(int unused) {
             //获取当前线程
             Thread current = Thread.currentThread();
@@ -231,7 +232,7 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             return fullTryAcquireShared(current);
         }
 
-        
+        //ReentrantReadWriteLock类的fullTryAcquireShared方法
         final int fullTryAcquireShared(Thread current) {
             
             HoldCounter rh = null;
@@ -289,6 +290,49 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
                     }
                     return 1;
                 }
+            }
+        }
+        
+        //AQS中的doAcquireShared方法
+        private void doAcquireShared(int arg) {
+            //根据当前线程创建一个共享模式的Node节点
+            //并把这个节点添加到等待队列的尾部
+            //AQS等待队列不熟悉的可以查看AQS深入解析的内容
+            //addWaiter方法的解析在其它篇幅已经分析过，这里不再深入分析
+            final Node node = addWaiter(Node.SHARED);
+            boolean failed = true;
+            try {
+                boolean interrupted = false;
+                //通过自旋尝试获取读取锁
+                for (;;) {
+                    //获取新建节点的前驱节点
+                    final Node p = node.predecessor();
+                    //如果前驱节点是头结点
+                    if (p == head) {
+                        //尝试获取读取锁
+                        int r = tryAcquireShared(arg);
+                        //获取到读取锁
+                        if (r >= 0) {
+                            //将前驱节点从等待队列中释放
+                            //同时使用LockSupport.unpark方法唤醒前驱节点的后继节点中的线程
+                            setHeadAndPropagate(node, r);
+                            p.next = null; // help GC
+                            if (interrupted)
+                                selfInterrupt();
+                            failed = false;
+                            return;
+                        }
+                    }
+                    //当前节点的前驱节点不是头结点，或不可以获取到锁
+                    //shouldParkAfterFailedAcquire方法检查当前节点在获取锁失败后是否要被阻塞
+                    //如果shouldParkAfterFailedAcquire方法执行结果是当前节点线程需要被阻塞，则执行parkAndCheckInterrupt方法阻塞当前线程
+                    if (shouldParkAfterFailedAcquire(p, node) &&
+                        parkAndCheckInterrupt())
+                        interrupted = true;
+                }
+            } finally {
+                if (failed)
+                    cancelAcquire(node);
             }
         }
 ```
