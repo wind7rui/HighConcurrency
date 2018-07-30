@@ -178,7 +178,9 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
         //AQS的acquireShared方法
         public final void acquireShared(int arg) {
             //尝试获取读取锁
+            //tryAcquireShared方法返回值小于0，则获取失败
             if (tryAcquireShared(arg) < 0)
+                //尝试排队再次获取
                 doAcquireShared(arg);
         }
 
