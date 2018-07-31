@@ -427,3 +427,26 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
             }
         }
 ```
+WriteLock源码解析
+
+下面开始分析写入锁WriteLock的实现原理，先看一下它的构造函数源码。
+```
+    public static class WriteLock implements Lock, java.io.Serializable {
+        private final Sync sync;
+
+        //通过ReentrantReadWriteLock对象构建
+        protected WriteLock(ReentrantReadWriteLock lock) {
+            //在ReentrantReadWriteLock构造函数中会根据fair参数值选择FairSync或NonfairSync创建不同的对象
+            //所以，这里赋值给sync的可能是FairSync类的对象，也可能是NonfairSync类的对象
+            sync = lock.sync;
+        }
+    }
+```
+FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是否需要被阻塞的检查方法，这里不做深入分析。
+
+对于lock()方法，如果其它线程既没有持有读取锁也没有持有写入锁，则可以获取写入锁并立即返回，并将写入锁持有计数设置为1；如果当前线程已经持有写入锁，则写入锁计数增加1，该方法立即返回；如果锁被其它线程持有，当前线程阻塞直到获取写入锁。具体代码如下。
+```
+        public void lock() {
+            sync.acquire(1);
+        }
+```
