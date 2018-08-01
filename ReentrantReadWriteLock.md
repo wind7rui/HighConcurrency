@@ -447,6 +447,173 @@ FairSync和NonfairSync都继承自Sync，不同点是各自实现了对读写是
 对于lock()方法，如果其它线程既没有持有读取锁也没有持有写入锁，则可以获取写入锁并立即返回，并将写入锁持有计数设置为1；如果当前线程已经持有写入锁，则写入锁计数增加1，该方法立即返回；如果锁被其它线程持有，当前线程阻塞直到获取写入锁。具体代码如下。
 ```
         public void lock() {
+            //调用AQS中的acquire方法
             sync.acquire(1);
+        }
+
+        //AQS中的acquire方法
+        public final void acquire(int arg) {
+            //调用Sync类中重写的tryAcquire方法尝试获取写入锁；
+            //如果tryAcquire方法返回true，则获取成功；
+            //如果tryAcquire方法返回false，则获取失败，继续执行acquireQueued方法；
+            
+            //addWaiter方法根据当前线程创建一个独占模式的Node节点
+            //并把这个节点添加到等待队列的尾部
+            //AQS等待队列不熟悉的可以查看AQS深入解析的内容
+            //addWaiter方法的解析在其它篇幅已经分析过，这里不再深入分析
+
+            //acquireQueued方法通过排队方式再次获取写入锁
+            //acquireQueued方法中如果可以获取锁，则返回false，否则返回true
+
+            //如果tryAcquire方法获取不到锁返回false，且acquireQueued方法也获取不到锁返回true
+            //则中断当前线程
+            if (!tryAcquire(arg) &&
+                acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+                //中断当前线程
+                selfInterrupt();
+        }
+
+        //Sync类中的tryAcquire
+        protected final boolean tryAcquire(int acquires) {
+            //获取当前线程
+            Thread current = Thread.currentThread();
+            //获取当前锁的状态值
+            int c = getState();
+            //使用exclusiveCount方法计算写入锁的重入次数
+            int w = exclusiveCount(c);
+            //如果锁状态不等于0，则表示存在写入锁或读取锁
+            if (c != 0) {
+                // w等于0表示不存在写入锁，那就存在读取锁
+                // 或者存在写入锁，但是不是当前线程持有的，则返回false获取失败
+                if (w == 0 || current != getExclusiveOwnerThread())
+                    return false;
+                // 如果当前线程已经持有写入锁，并且即将重入的次数超过最大65535次，则抛出Error
+                if (w + exclusiveCount(acquires) > MAX_COUNT)
+                    throw new Error("Maximum lock count exceeded");
+                // 如果重入次数不超限，则修改锁状态值
+                setState(c + acquires);
+                //返回获取成功
+                return true;
+            }
+
+            //如果锁状态值等于0，则表示不存在写入锁，也不存在读取锁；
+            //通过writerShouldBlock方法判断当前线程是否需要被阻塞；
+            //writerShouldBlock在FairSync类和NonfairSync类中有不同的实现；
+            //FairSync中实现是如果有其它线程在当前线程之前等待获取写入锁，则当前线程应该被阻塞并返回true，否则返回false；
+            //NonfairSync中实现是直接返回false，也就是不排队，竞争获取；
+            
+            //如果writerShouldBlock方法结果是true，则表示当前线程需要被阻塞，此时直接返回false获取失败；
+
+            //如果writerShouldBlock方法结果是false，将使用CAS修改锁状态值，修改失败则返回false获取失败，
+            //修改成功则设置当前线程持有写入锁。
+            if (writerShouldBlock() ||
+                !compareAndSetState(c, c + acquires))
+                return false;
+            //设置当前线程持有写入锁
+            setExclusiveOwnerThread(current);
+            return true;
+        }
+
+        //addWaiter方法继承自AQS
+        //将当前线程封装成Node节点，并将这个Node节点插入到同步等待队列的尾部
+        private Node addWaiter(Node mode) {
+            Node node = new Node(Thread.currentThread(), mode);
+            // Try the fast path of enq; backup to full enq on failure
+            Node pred = tail;
+            if (pred != null) {
+                node.prev = pred;
+                if (compareAndSetTail(pred, node)) {
+                    pred.next = node;
+                    return node;
+                }
+            }
+            enq(node);
+            return node;
+        }
+
+        //acquireQueued方法继承自AQS
+        final boolean acquireQueued(final Node node, int arg) {
+            boolean failed = true;
+            try {
+                boolean interrupted = false;
+                for (;;) {
+                    //获取当前节点的前驱节点
+                    final Node p = node.predecessor();
+                    //如果当前节点的前驱节点是头结点，并且可以获取到锁，跳出循环并返回false
+                    if (p == head && tryAcquire(arg)) {
+                        setHead(node);
+                        p.next = null; // help GC
+                        failed = false;
+                        return interrupted;
+                    }
+                    //当前节点的前驱节点不是头结点，或不可以获取到锁
+                    //shouldParkAfterFailedAcquire方法检查当前节点在获取锁失败后是否要被阻塞
+                    //如果shouldParkAfterFailedAcquire方法执行结果是当前节点线程需要被阻塞，
+                    //则执行parkAndCheckInterrupt方法阻塞当前线程
+                    if (shouldParkAfterFailedAcquire(p, node) &&
+                        parkAndCheckInterrupt())
+                        interrupted = true;
+                }
+            } finally {
+                if (failed)
+                    cancelAcquire(node);
+            }
+        }
+
+        //parkAndCheckInterrupt方法继承自AQS，用于阻塞当前线程
+        private final boolean parkAndCheckInterrupt() {
+            //阻塞当前线程，当前线程执行到这里即被挂起，等待被唤醒
+            //当当前节点的线程被唤醒的时候，会继续尝试获取锁
+            LockSupport.park(this);
+            return Thread.interrupted();
+        }
+```
+
+对于unlock()方法用于释放当前线程持有的写入锁，如果当前线程持有此锁，则将持有计数减1；如果持有计数等于0，则释放该锁，同时唤醒其它等待获取该锁的线程；如果当前线程不是此锁的持有者，则抛出IllegalMonitorStateException。具体源码分析如下。
+```
+        public void unlock() {
+            //调用AQS中的release方法
+            sync.release(1);
+        }
+
+        //AQS中的release方法释放持有的写入锁
+        public final boolean release(int arg) {
+            //通过tryRelease方法修改写入锁状态值，
+            //并返回是否还存在写入锁被持有；
+            if (tryRelease(arg)) {
+                //如果不存在写入锁被持有，
+                //则唤醒等待队列等待获取锁的线程
+                Node h = head;
+                if (h != null && h.waitStatus != 0)
+                    unparkSuccessor(h);
+                return true;
+            }
+            //如果存在写入锁被持有，则直接返回false
+            return false;
+        }
+
+        //Sync中重写的tryRelease方法
+        protected final boolean tryRelease(int releases) {
+            //如果当前线程没有持有写入锁，则抛出IllegalMonitorStateException
+            if (!isHeldExclusively())
+                throw new IllegalMonitorStateException();
+            //计算锁释放后的锁状态值
+            int nextc = getState() - releases;
+            //使用exclusiveCount方法计算写入锁的值
+            //判断是否还存在写入锁被持有
+            boolean free = exclusiveCount(nextc) == 0;
+            //如果不存在写入锁被线程持有，则设置写入锁持有线程为null
+            if (free)
+                setExclusiveOwnerThread(null);
+            //修改锁状态值
+            setState(nextc);
+            //返回是否还存在写入锁被持有
+            return free;
+        }
+
+        protected final boolean isHeldExclusively() {
+            //判断当前线程是否持有写入锁
+            //若持有，则返回true，否则返回false
+            return getExclusiveOwnerThread() == Thread.currentThread();
         }
 ```
