@@ -18,7 +18,7 @@
 * [高并发编程-volatile](https://github.com/wind7rui/HighConcurrency/blob/master/volatile.md)
 * [高并发编程-happens-before](https://github.com/wind7rui/HighConcurrency/blob/master/happens-before.md)
 * [高并发编程-HashMap深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/HashMap.md)
-* 高并发编程-ConcurrentHashMap深入解析
+* [高并发编程-ConcurrentHashMap深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/ConcurrentHashMap.md)
 * [高并发编程-ThreadLocal深入解析](https://github.com/wind7rui/HighConcurrency/blob/master/ThreadLocal.md)
 
 ## 关于我
