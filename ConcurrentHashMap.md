@@ -3,6 +3,7 @@ ConcurrentHashMap是支持并发操作、线程安全的HashMap。JDK1.7之前(�
 
 JDK1.7之前(包含7)的版本中，ConcurrentHashMap底层数据结构如下图所示。
 ![](https://github.com/wind7rui/HighConcurrency/blob/master/ConcurrentHashMap1.7.png)
+每个ConcurrentHashMap中包含一个Segment数组；每个Segment继承自ReentrantLock，其内部有一个HashEntry数组；每个HashEntry内部包含存储的key、value、hash和下一个HashEntry引用。
 
 JDK1.8版本中，ConcurrentHashMap底层数据结构如下图所示。
 
