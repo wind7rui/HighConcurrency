@@ -6,6 +6,6 @@ JDK1.7之前(包含7)的版本中，每个ConcurrentHashMap中包含一个Segmen
 
 ![](https://github.com/wind7rui/HighConcurrency/blob/master/ConcurrentHashMap1.7.png)
 
-JDK1.8版本中，ConcurrentHashMap底层数据结构如下图所示。
+JDK1.8版本中，取消了Segment分段锁，每个ConcurrentHashMap中包含一个Node数组。ConcurrentHashMap底层数据结构如下图所示。
 
 ## 源码分析
