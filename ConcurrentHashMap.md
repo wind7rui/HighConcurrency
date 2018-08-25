@@ -12,3 +12,5 @@ JDK1.8版本中，取消了Segment分段锁，每个ConcurrentHashMap中包含�
 ## 源码分析
 
 ### JDK1.7之前(包含7)的版本
+
+### JDK1.8版本
