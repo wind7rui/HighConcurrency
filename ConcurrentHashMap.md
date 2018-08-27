@@ -20,3 +20,9 @@ put
 get
 
 ### JDK1.8版本
+
+构造方法
+
+put
+
+get
